@@ -6,14 +6,14 @@
  * 發新版時請把 VERSION 加 1。
  */
 const PREFIX = 'jianxin-' + encodeURIComponent(self.registration.scope) + '-';
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CORE = PREFIX + VERSION + '-core';
 const RUNTIME = PREFIX + VERSION + '-runtime';
 const scoped = p => new URL(p, self.registration.scope).href;
 const SHELL = scoped('index.html');
 const OFFLINE = scoped('offline.html');
-const ASSETS = ['index.html', 'offline.html', 'manifest.webmanifest', 'images/hero-poster.webp',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png'].map(scoped);
+const ASSETS = ['index.html', 'offline.html', 'manifest.webmanifest', 'images/hero-poster.webp', 'street3d.js',
+  'icons/icon-v2-192.png', 'icons/icon-v2-512.png', 'icons/icon-v2-maskable-512.png', 'icons/apple-touch-icon-v2.png', 'icons/favicon-v2-32.png'].map(scoped);
 const CDN_HOSTS = ['images.unsplash.com', 'cdn.tailwindcss.com', 'unpkg.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', e => {

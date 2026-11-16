@@ -13,9 +13,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="煎心鍋貼">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
-<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-v2-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-v2-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon-v2.png">
 
 <!-- Tailwind CSS CDN -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -136,6 +136,7 @@
 
     <!-- Right: Cart + CTA -->
     <div class="flex items-center gap-2 sm:gap-3">
+      <button type="button" data-install-open id="installTop" class="inline-flex h-10 items-center gap-1.5 rounded-full border border-wood/25 px-3 text-sm font-bold text-wood transition hover:bg-wood hover:text-cream" aria-label="安裝 App 到主畫面"><i data-lucide="download" class="h-4 w-4"></i><span class="hidden sm:inline">安裝 App</span></button>
       <button id="cartBtn" class="relative grid h-10 w-10 place-items-center rounded-full text-wood hover:bg-wood/10 transition" aria-label="開啟購物車">
         <i data-lucide="shopping-cart" class="h-5 w-5"></i>
         <span id="cartBadge" class="absolute -right-0.5 -top-0.5 hidden min-w-[20px] rounded-full bg-ember px-1 text-center text-[11px] font-bold leading-5 text-white">0</span>
@@ -496,7 +497,7 @@
 <div id="installModal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-wood-dark/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="installTitle">
   <div class="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-3xl bg-cream p-7 shadow-2xl">
     <div class="flex items-start justify-between"><h2 id="installTitle" class="font-serif text-2xl font-black text-wood">把煎心鍋貼加入主畫面</h2><button type="button" id="installClose" class="grid h-9 w-9 place-items-center rounded-full hover:bg-wood/10" aria-label="關閉"><i data-lucide="x" class="h-5 w-5"></i></button></div>
-    <div class="mt-5 flex items-center gap-4"><img src="./icons/icon-192.png" alt="發光鍋貼 App 圖示" class="h-20 w-20 rounded-[1.25rem] shadow-lg"><div><p class="font-bold text-wood">煎心鍋貼 JIAN XIN</p><p class="text-sm text-wood/70">從主畫面一鍵開啟，點餐更快。</p></div></div>
+    <div class="mt-5 flex items-center gap-4"><img src="./icons/icon-v2-192.png" alt="發光鍋貼 App 圖示" class="h-20 w-20 rounded-[1.25rem] shadow-lg"><div><p class="font-bold text-wood">煎心鍋貼 JIAN XIN</p><p class="text-sm text-wood/70">從主畫面一鍵開啟，點餐更快。</p></div></div>
     <p id="pwaStatus" class="mt-4 rounded-xl bg-white px-4 py-3 text-sm text-wood/80" aria-live="polite">正在準備離線功能…</p>
     <button type="button" id="nativeInstall" class="mt-4 hidden w-full rounded-full bg-ember py-3 font-bold text-white shadow hover:bg-ember-dark">立即安裝</button>
     <ol class="mt-5 list-decimal space-y-2 pl-5 text-sm leading-6 text-wood/80">
@@ -1004,303 +1005,24 @@ observeReveals();
   }).join('');
 })();
 /* ================================================================
-   街景 3D 版（Three.js 低多邊形）：人來人往、走進店裡
-   - 進入視窗附近時才載入 Three.js；失敗或不支援 WebGL 時保留 2D 街景
+   街景 3D 版：接近畫面時才載入 Three.js 與 street3d.js；失敗或不支援 WebGL 時保留 2D 版本
    ================================================================ */
 (function () {
   const sec = $('#street'); if (!sec) return;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let started = false;
+  const load = src => new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('載入失敗：' + src)); document.head.appendChild(s); });
   function start() {
     if (started) return; started = true;
-    if (window.THREE) return safeInit();
-    const s = document.createElement('script');
-    s.src = 'https://unpkg.com/three@0.149.0/build/three.min.js';
-    s.onload = safeInit;
-    s.onerror = () => console.warn('Three.js 載入失敗，保留 2D 街景');
-    document.head.appendChild(s);
+    (window.THREE ? Promise.resolve() : load('https://unpkg.com/three@0.149.0/build/three.min.js'))
+      .then(() => load('./street3d.js'))
+      .then(() => window.initStreet3D(sec, reduce))
+      .catch(e => console.warn('3D 街景無法啟動，保留 2D 版本', e));
   }
-  function safeInit() { try { init3D(); } catch (e) { console.warn('3D 街景無法啟動，保留 2D 版本', e); } }
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); start(); } }, { rootMargin: '400px' });
     io.observe(sec);
   } else start();
-
-  function init3D() {
-    const T = THREE;
-    const canvas = document.createElement('canvas'); canvas.className = 'street-canvas'; canvas.setAttribute('aria-hidden', 'true');
-    const renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    const small = innerWidth < 640;
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-    renderer.shadowMap.enabled = !small; renderer.shadowMap.type = T.PCFSoftShadowMap;
-    const scene = new T.Scene();
-    const camera = new T.PerspectiveCamera(35, 2, 0.1, 100);
-
-    /* ---------- 小工具 ---------- */
-    const M = (c, o) => new T.MeshLambertMaterial(Object.assign({ color: c, flatShading: true }, o));
-    const B = (c, o) => new T.MeshBasicMaterial(Object.assign({ color: c }, o));
-    const mesh = (geo, mat, x, y, z, parent) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; (parent || scene).add(m); return m; };
-    const box = (w, h, d, mat, x, y, z, parent) => mesh(new T.BoxGeometry(w, h, d), mat, x, y, z, parent);
-    const cv = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
-    const tex = c => { const t = new T.CanvasTexture(c); t.anisotropy = 4; return t; };
-    const rnd = (a, b) => a + Math.random() * (b - a);
-    const glowTex = (() => { const c = cv(64, 64), g = c.getContext('2d'), r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-      r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); return tex(c); })();
-    const sprite = (color, size, x, y, z, op, add) => {
-      const s = new T.Sprite(new T.SpriteMaterial({ map: glowTex, color, transparent: true, opacity: op, depthWrite: false, blending: add ? T.AdditiveBlending : T.NormalBlending }));
-      s.scale.set(size, size, 1); s.position.set(x, y, z); scene.add(s); return s;
-    };
-
-    /* ---------- 燈光 ---------- */
-    scene.add(new T.HemisphereLight(0xffd9a8, 0x3a2417, 0.95));
-    const sun = new T.DirectionalLight(0xffb070, 0.75); sun.position.set(-6, 9, 9); sun.castShadow = !small;
-    sun.shadow.mapSize.set(1024, 1024);
-    Object.assign(sun.shadow.camera, { left: -13, right: 13, top: 9, bottom: -9, near: 1, far: 30 });
-    scene.add(sun);
-    const shopLight = new T.PointLight(0xffa550, 1.3, 9, 2); shopLight.position.set(-0.8, 1.6, 0.4); scene.add(shopLight);
-
-    /* ---------- 地面 ---------- */
-    const tileC = cv(128, 128), tg = tileC.getContext('2d');
-    tg.fillStyle = '#5a3a25'; tg.fillRect(0, 0, 128, 128); tg.strokeStyle = 'rgba(255,255,255,.10)'; tg.lineWidth = 3; tg.strokeRect(0, 0, 128, 128);
-    const tileT = tex(tileC); tileT.wrapS = tileT.wrapT = T.RepeatWrapping; tileT.repeat.set(36, 3);
-    const pave = box(60, 0.2, 5.6, M(0xffffff, { map: tileT }), 0, -0.1, 1.6);
-    box(60, 0.3, 0.3, M(0x7a5238), 0, -0.05, 4.55);
-    box(60, 0.1, 9, M(0x2a1d15), 0, -0.2, 9.0);
-    for (let x = -28; x < 30; x += 4) box(1.8, 0.02, 0.18, B(0xd9c9a8), x, -0.14, 9.0);
-
-    /* ---------- 背景建築 ---------- */
-    const winC = cv(64, 128), wg = winC.getContext('2d');
-    wg.fillStyle = '#000'; wg.fillRect(0, 0, 64, 128);
-    for (let y = 8; y < 120; y += 20) for (let x = 8; x < 56; x += 18) if (Math.random() < .5) { wg.fillStyle = Math.random() < .5 ? '#f3a461' : '#ffd9a0'; wg.fillRect(x, y, 9, 11); }
-    const winT = tex(winC);
-    [[-13, 4.5, 8, -4, 0x2a1710], [-8.6, 4, 5.4, -3.2, 0x331c12], [-5.7, 3.4, 4.6, -2, 0x3a2417],
-     [5.7, 3.4, 5.6, -2, 0x3a2417], [9, 4, 7.4, -4, 0x2a1710], [13.2, 4.6, 6, -3, 0x331c12], [-17, 5, 10, -5, 0x1f120a], [17.5, 5, 11, -5, 0x1f120a]]
-      .forEach(([x, w, h, z, col]) => {
-        const m = M(col, { emissive: 0xffffff, emissiveMap: winT, emissiveIntensity: .7 });
-        box(w, h, 2.6, m, x, h / 2, z - 0.4);
-      });
-
-    /* ---------- 鍋貼店 ---------- */
-    const SHOP_Z = -0.75;   // 店面前緣
-    box(7, 3.5, 2.5, M(0x3a2417), 0, 1.75, -2.0);
-    box(7.4, 0.3, 2.9, M(0x2a1710), 0, 3.65, -2.0);                        // 屋頂
-    box(0.5, 0.9, 0.5, M(0x2a1710), -2.6, 4.2, -2.2);                        // 煙囪
-    // 招牌
-    const signC = cv(640, 160), signT = tex(signC);
-    function drawSign() {
-      const g = signC.getContext('2d'); g.fillStyle = '#2e1b10'; g.fillRect(0, 0, 640, 160);
-      g.strokeStyle = '#f3a461'; g.lineWidth = 8; g.strokeRect(8, 8, 624, 144);
-      g.fillStyle = '#faf3e8'; g.textBaseline = 'middle'; g.textAlign = 'center';
-      g.font = '900 78px "Noto Serif TC","Songti TC","PMingLiU",serif'; g.fillText('煎心鍋貼', 270, 84);
-      g.fillStyle = '#f3a461'; g.font = '700 26px "Noto Sans TC",sans-serif'; g.fillText('JIAN XIN', 535, 90);
-      signT.needsUpdate = true;
-    }
-    drawSign();
-    if (document.fonts && document.fonts.load) Promise.race([document.fonts.load('900 78px "Noto Serif TC"', '煎心鍋貼'), new Promise(r => setTimeout(r, 2500))]).then(drawSign);
-    box(5.2, 1.0, 0.15, M(0xf3a461), 0, 3.0, SHOP_Z + 0.05);
-    const sign = new T.Mesh(new T.PlaneGeometry(5, 0.8), B(0xffffff, { map: signT })); sign.position.set(0, 3.0, SHOP_Z + 0.14); scene.add(sign);
-    // 雨遮（條紋）
-    const awC = cv(64, 16), ag = awC.getContext('2d'); ag.fillStyle = '#d9782b'; ag.fillRect(0, 0, 32, 16); ag.fillStyle = '#faf3e8'; ag.fillRect(32, 0, 32, 16);
-    const awT = tex(awC); awT.wrapS = T.RepeatWrapping; awT.repeat.set(7, 1); awT.magFilter = T.NearestFilter;
-    const awning = box(6.4, 0.1, 1.5, M(0xffffff, { map: awT }), 0, 2.45, SHOP_Z + 0.6); awning.rotation.x = 0.28;
-    // 櫥窗＋櫃檯＋蒸籠
-    box(3.2, 1.75, 0.08, B(0xf3a461), -1.45, 1.35, SHOP_Z + 0.02);
-    box(3.5, 0.12, 0.12, M(0x2e1b10), -1.45, 2.25, SHOP_Z + 0.07); box(3.5, 0.12, 0.12, M(0x2e1b10), -1.45, 0.45, SHOP_Z + 0.07);
-    box(0.12, 1.9, 0.12, M(0x2e1b10), -3.2, 1.35, SHOP_Z + 0.07); box(0.12, 1.9, 0.12, M(0x2e1b10), 0.3, 1.35, SHOP_Z + 0.07);
-    box(3.5, 0.55, 0.6, M(0x7a5238), -1.45, 0.28, SHOP_Z + 0.3);
-    [-2.5, -1.45, -0.4].forEach((x, i) => {
-      const h = [2, 3, 2][i];
-      for (let k = 0; k < h; k++) mesh(new T.CylinderGeometry(0.36, 0.36, 0.18, 12), M(k % 2 ? 0xd9a85f : 0xc9965a), x, 0.65 + k * 0.2, SHOP_Z + 0.34, scene);
-      mesh(new T.CylinderGeometry(0.2, 0.38, 0.12, 12), M(0xb98245), x, 0.65 + h * 0.2, SHOP_Z + 0.34, scene);
-    });
-    // 門＋門簾
-    box(1.5, 2.3, 0.08, B(0x6b3410), 2.1, 1.15, SHOP_Z + 0.02);
-    box(1.7, 0.14, 0.14, M(0x2e1b10), 2.1, 2.35, SHOP_Z + 0.07); box(0.14, 2.4, 0.14, M(0x2e1b10), 1.25, 1.2, SHOP_Z + 0.07); box(0.14, 2.4, 0.14, M(0x2e1b10), 2.95, 1.2, SHOP_Z + 0.07);
-    const norens = [];
-    ['煎', '心'].forEach((ch, i) => {
-      const c = cv(128, 160), g = c.getContext('2d'); g.fillStyle = '#faf3e8'; g.fillRect(0, 0, 128, 160); g.fillStyle = '#d9782b'; g.fillRect(0, 140, 128, 20);
-      g.fillStyle = '#b95f18'; g.font = '900 96px "Noto Serif TC","Songti TC",serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ch, 64, 68);
-      const t = tex(c); const m = new T.Mesh(new T.PlaneGeometry(0.72, 0.9), M(0xffffff, { map: t, side: T.DoubleSide }));
-      m.position.set(1.74 + i * 0.74, 2.0, SHOP_Z + 0.22); m.geometry.translate(0, -0.45, 0); m.position.y = 2.28; m.castShadow = true; scene.add(m); norens.push(m);
-    });
-    // 燈籠
-    const lanterns = [-3.35, 3.35].map(x => {
-      box(0.04, 0.5, 0.04, M(0x2e1b10), x, 3.15, SHOP_Z + 0.4);
-      const l = new T.Mesh(new T.SphereGeometry(0.24, 12, 10), B(0xff6a3d)); l.scale.set(0.9, 1.2, 0.9); l.position.set(x, 2.75, SHOP_Z + 0.4); scene.add(l);
-      const gl = sprite(0xff8a50, 1.6, x, 2.75, SHOP_Z + 0.4, 0.6, true); return { l, gl };
-    });
-    // 蒸氣
-    const steams = Array.from({ length: 9 }, (_, i) => ({ s: sprite(0xffffff, 0.6, 0, 0, 0, 0, false), ph: i / 9, x: i % 3 === 0 ? -2.5 : i % 3 === 1 ? -1.45 : -0.4 }));
-    const chim = Array.from({ length: 4 }, (_, i) => ({ s: sprite(0xffffff, 0.8, 0, 0, 0, 0, false), ph: i / 4 }));
-
-    /* ---------- 路燈 ---------- */
-    [-8.2, 8.2].forEach(x => {
-      mesh(new T.CylinderGeometry(0.06, 0.08, 4.2, 8), M(0x2e1b10), x, 2.1, 4.2);
-      box(0.6, 0.06, 0.06, M(0x2e1b10), x + (x < 0 ? 0.3 : -0.3), 4.2, 4.2);
-      const bx = x + (x < 0 ? 0.6 : -0.6);
-      mesh(new T.SphereGeometry(0.16, 10, 8), B(0xffe0a0), bx, 4.1, 4.2); sprite(0xffcf80, 2.4, bx, 4.1, 4.2, 0.55, true);
-    });
-
-    /* ---------- 人物 ---------- */
-    const SKINS = [0xf6d1b0, 0xe8b48a, 0xc98d62, 0x8d5a3a, 0xffe0c4];
-    const CAST = [
-      { sex: 'f', hair: 'long',     hc: 0x1b1210, skin: 0, top: 0xfaf3e8, bot: 0x3d5a8c, out: 'skirt', acc: 'backpack', h: 1 },
-      { sex: 'm', hair: 'short',    hc: 0x1b1210, skin: 1, top: 0x2f4f7f, bot: 0x555a63, out: 'pants', acc: 'bag', h: 1.03 },
-      { sex: 'f', hair: 'ponytail', hc: 0x6b3a1f, skin: 4, top: 0xc0504d, bot: 0xc0504d, out: 'dress', acc: null, h: 0.98 },
-      { sex: 'm', hair: 'curly',    hc: 0x151010, skin: 3, top: 0x4f8a5b, bot: 0xc2a878, out: 'shorts', acc: null, h: 1.05 },
-      { sex: 'f', hair: 'bun',      hc: 0xcfcfcf, skin: 0, top: 0x8a8f4a, bot: 0x5a3a25, out: 'skirt', acc: 'bag', h: 0.93 },
-      { sex: 'm', hair: 'cap',      hc: 0xd9782b, skin: 2, top: 0xe8c06a, bot: 0x3b5f8f, out: 'pants', acc: 'backpack', h: 1 },
-      { sex: 'f', hair: 'bob',      hc: 0xe8c06a, skin: 4, top: 0x8e6bb8, bot: 0xf0ece4, out: 'pants', acc: null, h: 0.99 },
-      { sex: 'm', hair: 'bald',     hc: 0x000000, skin: 2, top: 0x1f1f24, bot: 0x2e2e36, out: 'pants', acc: 'scarf', h: 1.06 },
-      { sex: 'f', hair: 'pigtails', hc: 0x3a2417, skin: 1, top: 0xf48fb1, bot: 0x6fa8dc, out: 'shorts', acc: null, h: 0.72 },
-      { sex: 'm', hair: 'short',    hc: 0x6b3a1f, skin: 0, top: 0x3d8bd9, bot: 0xd8d2c4, out: 'shorts', acc: 'backpack', h: 0.7 },
-      { sex: 'f', hair: 'long',     hc: 0x7a4a2a, skin: 2, top: 0x7fcdbb, bot: 0x3d5a8c, out: 'pants', acc: 'bag', h: 1.0 },
-      { sex: 'm', hair: 'short',    hc: 0xbdbdbd, skin: 1, top: 0xc8b799, bot: 0x6b4a30, out: 'pants', acc: 'scarf', h: 0.97 }
-    ];
-
-    function makePerson(c) {
-      const g = new T.Group(), body = new T.Group(); g.add(body);
-      const skin = M(SKINS[c.skin]), top = M(c.top), bot = M(c.bot), hair = M(c.hc);
-      const male = c.sex === 'm', sx = male ? 1.25 : 1;
-      const cyl = (rt, rb, h, mat, y, parent) => { const m = new T.Mesh(new T.CylinderGeometry(rt, rb, h, 8), mat); m.position.y = y; m.castShadow = true; parent.add(m); return m; };
-      // 腿
-      const legs = [-1, 1].map(s => {
-        const lg = new T.Group(); lg.position.set(s * 0.1, 0.9, 0); body.add(lg);
-        const upper = c.out === 'pants' ? 0.84 : c.out === 'shorts' ? 0.4 : 0;
-        if (upper) cyl(0.082, 0.072, upper, bot, -upper / 2, lg);
-        if (upper < 0.84) cyl(0.066, 0.056, 0.84 - upper, skin, -upper - (0.84 - upper) / 2, lg);
-        const shoe = new T.Mesh(new T.BoxGeometry(0.12, 0.07, 0.22), M(c.sex === 'f' && c.out !== 'pants' ? 0xf0ece4 : 0x2a2a2a)); shoe.position.set(0, -0.87, 0.04); shoe.castShadow = true; lg.add(shoe);
-        return lg;
-      });
-      // 軀幹
-      const torso = new T.Mesh(new T.CapsuleGeometry(0.17, 0.32, 4, 8), top); torso.scale.set(sx, 1, 0.8); torso.position.y = 1.2; torso.castShadow = true; body.add(torso);
-      if (c.out === 'skirt') cyl(0.19, 0.31, 0.42, bot, 0.78, body);
-      if (c.out === 'dress') cyl(0.19, 0.32, 0.55, top, 0.72, body);
-      // 手臂
-      const sh = 0.17 * sx + 0.08;
-      const arms = [-1, 1].map(s => {
-        const ar = new T.Group(); ar.position.set(s * sh, 1.45, 0); body.add(ar);
-        const sl = new T.Mesh(new T.CapsuleGeometry(0.052, 0.28, 3, 6), top); sl.position.y = -0.2; sl.castShadow = true; ar.add(sl);
-        const hand = new T.Mesh(new T.SphereGeometry(0.052, 8, 6), skin); hand.position.y = -0.43; ar.add(hand);
-        return ar;
-      });
-      // 外帶袋（右手）
-      const bag = new T.Group(); bag.position.set(0.0, -0.5, 0.04); arms[1].add(bag);
-      bag.add(new T.Mesh(new T.BoxGeometry(0.13, 0.17, 0.08), M(0xfaf3e8)));
-      const bs = new T.Mesh(new T.BoxGeometry(0.135, 0.04, 0.085), M(0xd9782b)); bs.position.y = 0.05; bag.add(bs);
-      bag.visible = c.acc === 'bag';
-      // 頭
-      const hy = 1.72, head = new T.Group(); head.position.y = hy; body.add(head);
-      const hm = new T.Mesh(new T.SphereGeometry(0.17, 14, 10), skin); hm.castShadow = true; head.add(hm);
-      [-1, 1].forEach(s => { const e = new T.Mesh(new T.SphereGeometry(0.02, 6, 6), M(0x111111)); e.position.set(s * 0.06, -0.005, 0.155); head.add(e); });
-      const cap = (r, th, mat) => new T.Mesh(new T.SphereGeometry(r, 14, 8, 0, Math.PI * 2, 0, th), mat);
-      const add = (m, x, y, z) => { m.position.set(x, y, z); m.castShadow = true; head.add(m); return m; };
-      switch (c.hair) {
-        case 'short': add(cap(0.185, Math.PI * 0.42, hair), 0, 0.01, -0.005); break;
-        case 'long': add(cap(0.185, Math.PI * 0.42, hair), 0, 0.01, -0.005); add(new T.Mesh(new T.BoxGeometry(0.36, 0.5, 0.1), hair), 0, -0.24, -0.13);
-          add(new T.Mesh(new T.BoxGeometry(0.05, 0.34, 0.2), hair), -0.18, -0.12, -0.03); add(new T.Mesh(new T.BoxGeometry(0.05, 0.34, 0.2), hair), 0.18, -0.12, -0.03); break;
-        case 'ponytail': add(cap(0.185, Math.PI * 0.42, hair), 0, 0.01, -0.005); add(new T.Mesh(new T.SphereGeometry(0.06, 8, 6), hair), 0, 0.02, -0.19);
-          add(new T.Mesh(new T.CapsuleGeometry(0.045, 0.2, 3, 6), hair), 0, -0.14, -0.21); break;
-        case 'bun': add(cap(0.185, Math.PI * 0.42, hair), 0, 0.01, -0.005); add(new T.Mesh(new T.SphereGeometry(0.09, 8, 6), hair), 0, 0.2, -0.03); break;
-        case 'bob': add(cap(0.19, Math.PI * 0.45, hair), 0, 0.01, -0.005);
-          add(new T.Mesh(new T.CylinderGeometry(0.2, 0.2, 0.2, 14, 1, true), M(c.hc, { side: T.DoubleSide })), 0, -0.07, -0.02); break;
-        case 'curly': add(cap(0.23, Math.PI * 0.5, hair), 0, 0.045, -0.01); break;
-        case 'pigtails': add(cap(0.185, Math.PI * 0.42, hair), 0, 0.01, -0.005);
-          add(new T.Mesh(new T.SphereGeometry(0.075, 8, 6), hair), -0.21, -0.02, -0.02); add(new T.Mesh(new T.SphereGeometry(0.075, 8, 6), hair), 0.21, -0.02, -0.02); break;
-        case 'cap': add(cap(0.19, Math.PI * 0.45, hair), 0, 0.012, -0.005); add(new T.Mesh(new T.BoxGeometry(0.22, 0.02, 0.15), hair), 0, 0.07, 0.19); break;
-        default: break;
-      }
-      // 配件
-      if (c.acc === 'backpack') { const b = new T.Mesh(new T.BoxGeometry(0.28, 0.36, 0.14), M(0xd9782b)); b.position.set(0, 1.22, -0.2); b.castShadow = true; body.add(b); }
-      if (c.acc === 'scarf') { const s = new T.Mesh(new T.TorusGeometry(0.13, 0.045, 6, 12), M(0xc0504d)); s.rotation.x = Math.PI / 2; s.position.y = 1.55; body.add(s); }
-      g.scale.setScalar(c.h);
-      return { g, body, legs, arms, bag, head };
-    }
-
-    /* ---------- 行為：路過／走進店裡／從店裡走出 ---------- */
-    const DOOR_X = 2.1, FRONT_Z = -0.62, EDGE = 14;
-    const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
-    const agents = CAST.map((c, i) => {
-      const p = makePerson(c); scene.add(p.g); p.g.visible = false;
-      return { c, p, lane: 1.0 + (i % 6) * 0.55 + (i > 5 ? 0.25 : 0), speed: (c.h < 0.8 ? 0.95 : 1.15) + (i % 4) * 0.12, phase: Math.random() * 6,
-               wps: [], wait: rnd(0, 9), inside: false, onEnd: null, rot: 0, moving: false, state: 'wait' };
-    });
-    function place(a, x, z) { a.p.g.position.set(x, 0, z); }
-    function plan(a) {
-      if (a.inside) {  // 從店裡走出
-        a.inside = false; const dir = Math.random() < .5 ? 1 : -1;
-        place(a, DOOR_X, FRONT_Z - 0.1); a.rot = 0; a.p.g.rotation.y = 0;
-        a.wps = [[DOOR_X, a.lane], [dir * EDGE, a.lane]]; a.onEnd = 'gone'; a.p.bag.visible = true;
-      } else {
-        const dir = Math.random() < .5 ? 1 : -1; place(a, -dir * EDGE, a.lane); a.p.bag.visible = a.c.acc === 'bag';
-        a.rot = dir > 0 ? Math.PI / 2 : -Math.PI / 2; a.p.g.rotation.y = a.rot;
-        if (Math.random() < 0.5) { a.wps = [[dir * EDGE, a.lane]]; a.onEnd = 'gone'; }
-        else { a.wps = [[DOOR_X, a.lane], [DOOR_X, FRONT_Z]]; a.onEnd = 'enter'; }
-      }
-      a.state = 'walk'; a.p.g.visible = true;
-    }
-    function updateAgent(a, dt) {
-      if (a.state === 'wait') { a.wait -= dt; if (a.wait <= 0) plan(a); return; }
-      const g = a.p.g, w = a.wps[0];
-      let dx = w[0] - g.position.x, dz = w[1] - g.position.z; const dist = Math.hypot(dx, dz);
-      const want = Math.atan2(dx, dz), diff = angDiff(a.rot, want);
-      a.rot += Math.sign(diff) * Math.min(Math.abs(diff), 5 * dt); g.rotation.y = a.rot;
-      a.moving = Math.abs(diff) < 0.6;
-      if (a.moving) {
-        const step = a.speed * dt;
-        if (dist <= step) { g.position.x = w[0]; g.position.z = w[1]; a.wps.shift(); }
-        else { g.position.x += dx / dist * step; g.position.z += dz / dist * step; }
-        a.phase += a.speed * dt * 5.2;
-      }
-      const s = a.moving ? Math.sin(a.phase) : 0;
-      a.p.legs[0].rotation.x = s * 0.55; a.p.legs[1].rotation.x = -s * 0.55;
-      a.p.arms[0].rotation.x = -s * 0.5; a.p.arms[1].rotation.x = s * 0.5;
-      a.p.body.position.y = a.moving ? Math.abs(Math.cos(a.phase)) * 0.035 : 0;
-      if (!a.wps.length) {
-        g.visible = false; a.state = 'wait';
-        if (a.onEnd === 'enter') { a.inside = true; a.wait = rnd(4, 9); } else a.wait = rnd(1, 6);
-      }
-    }
-
-    /* ---------- 視角、視差、尺寸 ---------- */
-    const base = new T.Vector3(0, 2.6, 10), look = new T.Vector3(0, 1.4, 0), par = { x: 0, y: 0, tx: 0, ty: 0 };
-    function resize() {
-      const w = sec.clientWidth, h = sec.clientHeight; if (!w || !h) return;
-      renderer.setSize(w, h, false); camera.aspect = w / h;
-      const D = camera.aspect < 1.8 ? Math.max(15, 21 / camera.aspect) : Math.max(13, 32 / camera.aspect); base.set(0, 2.1 + D * 0.05, D);
-      camera.updateProjectionMatrix();
-    }
-    addEventListener('pointermove', e => { par.tx = e.clientX / innerWidth - 0.5; par.ty = e.clientY / innerHeight - 0.5; }, { passive: true });
-    if ('ResizeObserver' in window) new ResizeObserver(resize).observe(sec); else addEventListener('resize', resize);
-
-    /* ---------- 迴圈 ---------- */
-    let time = 0;
-    function animateDecor(t) {
-      norens.forEach((n, i) => { n.rotation.z = Math.sin(t * 1.6 + i) * 0.04; });
-      lanterns.forEach((o, i) => { const k = 0.85 + Math.sin(t * 2.2 + i * 1.7) * 0.15; o.gl.material.opacity = 0.5 * k; o.gl.scale.setScalar(1.5 * k); });
-      steams.forEach(o => { const p = (t / 4.5 + o.ph) % 1; o.s.position.set(o.x + Math.sin(p * 6 + o.ph * 9) * 0.12, 1.1 + p * 1.6, SHOP_Z + 0.4); o.s.scale.setScalar(0.4 + p * 0.9); o.s.material.opacity = Math.sin(p * Math.PI) * 0.35; });
-      chim.forEach(o => { const p = (t / 6 + o.ph) % 1; o.s.position.set(-2.6 + Math.sin(p * 5) * 0.2 + p * 0.6, 4.7 + p * 2.2, -2.2); o.s.scale.setScalar(0.6 + p * 1.4); o.s.material.opacity = Math.sin(p * Math.PI) * 0.3; });
-    }
-    function step(dt) { time += dt; agents.forEach(a => updateAgent(a, dt)); animateDecor(time); }
-    function render() {
-      par.x += (par.tx - par.x) * 0.05; par.y += (par.ty - par.y) * 0.05;
-      camera.position.set(base.x + par.x * 1.6, base.y - par.y * 0.5, base.z); camera.lookAt(look);
-      renderer.render(scene, camera);
-    }
-
-    resize();
-    for (let i = 0; i < 160; i++) step(0.1);        // 預先模擬 16 秒，載入時街上已有人
-    sec.appendChild(canvas); render(); sec.classList.add('is-3d');
-
-    if (reduce) { addEventListener('resize', render); return; }   // 減少動態：只顯示靜態畫面
-    let last = performance.now(), vis = true;
-    new IntersectionObserver(es => { vis = es[0].isIntersecting; }).observe(sec);
-    (function frame(now) {
-      requestAnimationFrame(frame);
-      if (!vis || document.hidden) { last = now; return; }
-      const dt = Math.min(0.05, (now - last) / 1000); last = now; step(dt); render();
-    })(last);
-  }
 })();
 
 /* ================================================================
@@ -1316,7 +1038,7 @@ observeReveals();
     $$('[data-install-open]').forEach(b => { (b.closest('li') || b).hidden = isStandalone(); });
     $('#nativeInstall').classList.toggle('hidden', !installPrompt);
   }
-  function openInstall() { modal.classList.remove('hidden'); modal.classList.add('flex'); lockScroll(true); refreshIcons(); }
+  function openInstall() { if (installPrompt) return nativeInstall(); modal.classList.remove('hidden'); modal.classList.add('flex'); lockScroll(true); refreshIcons(); }
   function closeInstall() { if (modal.classList.contains('hidden')) return; modal.classList.add('hidden'); modal.classList.remove('flex'); lockScroll(false); }
   $$('[data-install-open]').forEach(b => b.addEventListener('click', openInstall));
   $('#installClose').addEventListener('click', closeInstall);
@@ -1325,12 +1047,13 @@ observeReveals();
 
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; syncInstallUI(); });
   addEventListener('appinstalled', () => { installPrompt = null; syncInstallUI(); closeInstall(); toast('煎心鍋貼已加入你的應用程式'); });
-  $('#nativeInstall').addEventListener('click', async () => {
+  $('#nativeInstall').addEventListener('click', () => nativeInstall());
+  async function nativeInstall() {
     if (!installPrompt) return;
     const p = installPrompt; installPrompt = null; syncInstallUI();
     try { await p.prompt(); const c = await p.userChoice; if (c.outcome === 'accepted') closeInstall(); }
     catch { toast('請從瀏覽器選單選擇「安裝應用程式」', 'info'); }
-  });
+  }
 
   const syncNet = () => { $('#offlineBar').hidden = navigator.onLine; };
   addEventListener('online', syncNet); addEventListener('offline', syncNet);
