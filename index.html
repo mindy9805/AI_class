@@ -8,55 +8,61 @@
   /* 1. CSS Reset & Canvas 全螢幕佈局 */
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{width:100%;height:100%;overflow:hidden;
-    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;color:#f4f6ff;
-    background:radial-gradient(circle at 60% 40%,#2a2f6b 0%,#14173a 55%,#0a0c20 100%)}
+    font-family:"Huninn","jf-openhuninn","jf open 粉圓","PingFang TC","Microsoft JhengHei",sans-serif;color:#eef0fb;
+    background:radial-gradient(circle at 50% 50%,#4a4f86 0%,#363a6b 55%,#2a2d55 100%)}
+  button,input{font-family:inherit}
   #canvas-container{position:absolute;inset:0;z-index:0}
   #canvas-container canvas{display:block;width:100%;height:100%}
   .hidden{display:none!important}
 
   /* 2. 控制面板 UI (Glassmorphism) */
   #header{position:absolute;top:0;left:0;right:0;z-index:5;padding:14px 24px;display:flex;align-items:center;gap:12px;
-    background:linear-gradient(180deg,rgba(10,12,32,.75),rgba(10,12,32,0));pointer-events:none}
+    background:linear-gradient(180deg,rgba(30,32,64,.45),rgba(30,32,64,0));pointer-events:none}
   #header h1{font-size:20px;letter-spacing:1px}
   #header small{opacity:.65;font-size:12px}
   #ui-container{position:absolute;top:70px;left:20px;width:270px;max-height:calc(100% - 90px);overflow:auto;z-index:5;
-    padding:18px;border-radius:18px;background:rgba(255,255,255,.09);
+    padding:18px;border-radius:18px;background:rgba(255,255,255,.08);
     backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-    border:1px solid rgba(255,255,255,.2);box-shadow:0 8px 32px rgba(0,0,0,.35)}
+    border:1px solid rgba(255,255,255,.14);box-shadow:0 8px 28px rgba(20,22,50,.25)}
   .group{margin-bottom:16px}
   .group h3{font-size:13px;letter-spacing:1px;opacity:.8;margin-bottom:8px}
   .opt{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px;cursor:pointer;user-select:none}
-  .opt input{accent-color:#ffb02e;width:16px;height:16px}
+  .opt input{accent-color:#f0b98d;width:16px;height:16px}
   .chips{display:flex;flex-wrap:wrap;gap:6px 14px}
-  #count{font-size:13px;margin:4px 0 12px;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.25)}
-  #count b{color:#ffb02e;font-size:18px}
-  #count.zero{color:#ff8b8b}
-  #count.zero b{color:#ff6b6b}
-  .btn{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:700;color:#2b1a00;
-    background:linear-gradient(135deg,#ffd166,#ff9f1c);box-shadow:0 4px 14px rgba(255,159,28,.45);transition:transform .15s,opacity .15s}
+  #count{font-size:13px;margin:4px 0 12px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.07)}
+  #count b{color:#f3c9a2;font-size:18px}
+  #count.zero{color:#f2b3b3}
+  #count.zero b{color:#eea0a0}
+  .btn{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:400;color:#4a3b36;
+    background:linear-gradient(135deg,#f6dcc0,#efbf9c);box-shadow:0 4px 12px rgba(239,191,156,.3);transition:transform .15s,opacity .15s}
   .btn:hover:not(:disabled){transform:translateY(-1px)}
   .btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
-  .btn.ghost{background:rgba(255,255,255,.14);color:#fff;box-shadow:none;font-weight:500}
+  .btn.ghost{background:rgba(255,255,255,.12);color:#eef0fb;box-shadow:none}
   #spin-btn{width:100%}
   #note{margin-top:10px;font-size:11px;opacity:.55;line-height:1.5}
 
   /* 3. 結果彈窗與按鈕樣式 */
   #result-modal{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
-    background:rgba(5,6,18,.55);backdrop-filter:blur(4px)}
+    background:rgba(30,32,64,.4);backdrop-filter:blur(4px)}
   .card{width:min(420px,90vw);padding:28px;border-radius:22px;text-align:center;
-    background:rgba(255,255,255,.12);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-    border:1px solid rgba(255,255,255,.3);box-shadow:0 16px 60px rgba(0,0,0,.5);animation:pop .35s ease-out}
+    background:rgba(255,255,255,.14);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    border:1px solid rgba(255,255,255,.2);box-shadow:0 14px 48px rgba(20,22,50,.35);animation:pop .35s ease-out}
   @keyframes pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
   .card .emoji{font-size:44px}
   .card h2{font-size:28px;margin:6px 0 10px}
   .card .dist{opacity:.85;margin-bottom:12px}
   .tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:20px}
-  .tag{padding:4px 12px;border-radius:99px;font-size:12px;background:rgba(255,176,46,.22);border:1px solid rgba(255,176,46,.5)}
+  .tag{padding:4px 12px;border-radius:99px;font-size:12px;background:rgba(240,185,141,.18);border:1px solid rgba(240,185,141,.4)}
   .actions{display:flex;flex-direction:column;gap:10px}
   a.btn{text-decoration:none;display:block}
+  #spin-hint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:4;font-size:14px;opacity:.7;pointer-events:none}
   #toast{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);z-index:6;font-size:13px;opacity:.7;pointer-events:none}
   @media(max-width:700px){#ui-container{width:calc(100% - 24px);left:12px;top:60px;max-height:42%}}
 </style>
+<!-- 粉圓體（Google Fonts: Huninn）-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Huninn&display=swap" rel="stylesheet">
 <!-- 引進 Three.js CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -64,7 +70,7 @@
   <!-- 3D 畫布容器 -->
   <div id="canvas-container"></div>
 
-  <div id="header"><h1>🍱 AI3 南港午餐 3D 決策器</h1><small>半徑 2 公里內 · 拖曳滑鼠可傾斜轉盤</small></div>
+  <div id="header"><h1>🍱 AI3 南港午餐 3D 決策器</h1><small>半徑 2 公里內 · 拖曳可傾斜轉盤</small></div>
 
   <!-- 前端篩選 UI 層 -->
   <div id="ui-container">
@@ -86,6 +92,7 @@
     <button class="btn" id="spin-btn">🎲 決定吃什麼！</button>
     <div id="note">距離為以 AI3 所在的南港軟體園區為中心之概略估算，出發前請以 Google 地圖確認營業時間。</div>
   </div>
+  <div id="spin-hint">👆 點輪盤中間的圓點開始抽籤</div>
   <div id="toast"></div>
 
   <!-- 結果彈窗層 -->
@@ -125,13 +132,13 @@ const CATEGORIES = ["麵","飯","鍋貼/水餃","漢堡/美式","其他/小吃"]
 const container = document.getElementById("canvas-container");
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-camera.position.set(2.2, 0, 11);
+camera.position.set(0, 0, 13);
 const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 container.appendChild(renderer.domElement);
-scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-const dl = new THREE.DirectionalLight(0xffffff, 0.8); dl.position.set(4, 6, 8); scene.add(dl);
-const dl2 = new THREE.DirectionalLight(0x88aaff, 0.35); dl2.position.set(-6, -3, 4); scene.add(dl2);
+scene.add(new THREE.AmbientLight(0xffffff, 0.95));
+const dl = new THREE.DirectionalLight(0xffffff, 0.45); dl.position.set(4, 6, 8); scene.add(dl);
+const dl2 = new THREE.DirectionalLight(0xbfd0ff, 0.2); dl2.position.set(-6, -3, 4); scene.add(dl2);
 
 const R = 4;                       // 轉盤半徑
 const rig = new THREE.Group();     // 負責滑鼠傾斜
@@ -140,15 +147,29 @@ rig.add(wheel); scene.add(rig);
 
 // 指針（固定在轉盤上方）
 const pointer = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.9, 3),
-  new THREE.MeshStandardMaterial({color:0xff3b5c, roughness:.4}));
+  new THREE.MeshStandardMaterial({color:0xe88c9a, roughness:.6}));
 pointer.rotation.z = Math.PI;      // 尖端朝下
 pointer.position.set(0, R + 0.45, 0.5);
 rig.add(pointer);
-const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,0.6,32),
-  new THREE.MeshStandardMaterial({color:0xffd166, metalness:.6, roughness:.3}));
-hub.rotation.x = Math.PI/2; hub.position.z = 0.35; rig.add(hub);
+const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.85,0.85,0.5,48),
+  new THREE.MeshStandardMaterial({color:0xfbeedd, metalness:0, roughness:.6}));
+hub.rotation.x = Math.PI/2; hub.position.z = 0.5; hub.name = "hub"; rig.add(hub);
+const hubLabel = new THREE.Mesh(new THREE.CircleGeometry(0.85, 48),
+  new THREE.MeshBasicMaterial({transparent:true}));
+hubLabel.position.z = 0.76; hubLabel.name = "hub"; rig.add(hubLabel);
+function drawHub(){
+  const c = document.createElement("canvas"); c.width = c.height = 256;
+  const g = c.getContext("2d");
+  g.fillStyle = "#f7d9bd"; g.beginPath(); g.arc(128,128,122,0,Math.PI*2); g.fill();
+  g.fillStyle = "#fbeedd"; g.beginPath(); g.arc(128,128,100,0,Math.PI*2); g.fill();
+  g.fillStyle = "#b7766a"; g.font = "78px " + FONT; g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText("GO", 128, 138);
+  if (hubLabel.material.map) hubLabel.material.map.dispose();
+  hubLabel.material.map = new THREE.CanvasTexture(c); hubLabel.material.needsUpdate = true;
+}
 
-const COLORS = [0xff6b6b,0xffa94d,0xffd43b,0x69db7c,0x38d9a9,0x4dabf7,0x9775fa,0xf783ac];
+const FONT = '"Huninn","jf-openhuninn","PingFang TC","Microsoft JhengHei",sans-serif';
+const COLORS = [0xf4a9a8,0xf5c6a0,0xf2dfa0,0xb9dfae,0xa3d9cc,0xa9cbee,0xc5b6ec,0xeeb4cf];  // 柔和粉彩
 let currentList = [];
 
 // ===== 3. 動態 3D 輪盤生成邏輯 (Canvas 動態繪製文字貼圖) =====
@@ -157,11 +178,11 @@ function makeLabel(text, w, h){
   const c = document.createElement("canvas"); c.width = cw; c.height = ch;
   const g = c.getContext("2d");
   let fs = ch * 0.7;
-  g.font = `bold ${fs}px "Microsoft JhengHei","PingFang TC",sans-serif`;
-  while (g.measureText(text).width > cw * 0.92 && fs > 12){ fs -= 2; g.font = `bold ${fs}px "Microsoft JhengHei","PingFang TC",sans-serif`; }
+  const F = s => `${s}px ${FONT}`;
+  g.font = F(fs);
+  while (g.measureText(text).width > cw * 0.92 && fs > 12){ fs -= 2; g.font = F(fs); }
   g.textAlign = "right"; g.textBaseline = "middle";
-  g.lineWidth = fs * 0.12; g.strokeStyle = "rgba(0,0,0,.45)"; g.strokeText(text, cw*0.97, ch/2);
-  g.fillStyle = "#fff"; g.fillText(text, cw*0.97, ch/2);
+  g.fillStyle = "#5b4a47"; g.fillText(text, cw*0.97, ch/2);   // 柔和深棕字
   const tex = new THREE.CanvasTexture(c); tex.anisotropy = 4;
   return tex;
 }
@@ -176,11 +197,11 @@ function buildWheel(list){
   const n = list.length;
   if (n === 0){
     const m = new THREE.Mesh(new THREE.CylinderGeometry(R,R,0.4,64),
-      new THREE.MeshStandardMaterial({color:0x555a7a, roughness:.7}));
+      new THREE.MeshStandardMaterial({color:0x6b6f99, roughness:.8}));
     m.rotation.x = Math.PI/2; m.position.z = 0.2; wheel.add(m);
     const lab = new THREE.Mesh(new THREE.PlaneGeometry(5,1.2),
       new THREE.MeshBasicMaterial({map:(()=>{const c=document.createElement("canvas");c.width=512;c.height=120;const g=c.getContext("2d");
-        g.font="bold 64px sans-serif";g.fillStyle="#fff";g.textAlign="center";g.textBaseline="middle";g.fillText("沒有符合的餐廳",256,60);return new THREE.CanvasTexture(c);})(),transparent:true}));
+        g.font="60px "+FONT;g.fillStyle="#f4f1ff";g.textAlign="center";g.textBaseline="middle";g.fillText("沒有符合的餐廳",256,60);return new THREE.CanvasTexture(c);})(),transparent:true}));
     lab.position.z = 0.45; wheel.add(lab);
     return;
   }
@@ -190,11 +211,11 @@ function buildWheel(list){
     const shape = new THREE.Shape();
     shape.moveTo(0, 0); shape.absarc(0, 0, R, a0, a1, false); shape.lineTo(0, 0);
     const geo = new THREE.ExtrudeGeometry(shape, {depth:0.4, bevelEnabled:false, curveSegments:Math.max(8, Math.ceil(32 / n))});
-    const mat = new THREE.MeshStandardMaterial({color: COLORS[i % COLORS.length], roughness:.45, metalness:.1});
+    const mat = new THREE.MeshStandardMaterial({color: COLORS[i % COLORS.length], roughness:.45, metalness:0});
     const mesh = new THREE.Mesh(geo, mat); wheel.add(mesh);
     // 扇形分隔線
     const edge = new THREE.Mesh(new THREE.BoxGeometry(R, 0.05, 0.45),
-      new THREE.MeshStandardMaterial({color:0xffffff, roughness:.3}));
+      new THREE.MeshStandardMaterial({color:0xfff6ee, roughness:.6}));
     edge.position.set(Math.cos(a0) * R / 2, Math.sin(a0) * R / 2, 0.2); edge.rotation.z = a0;
     if (n > 1) wheel.add(edge);
     // 文字貼圖
@@ -210,7 +231,7 @@ function buildWheel(list){
   });
   // 外圈
   const ring = new THREE.Mesh(new THREE.TorusGeometry(R + 0.05, 0.12, 12, 96),
-    new THREE.MeshStandardMaterial({color:0xffd166, metalness:.7, roughness:.25}));
+    new THREE.MeshStandardMaterial({color:0xf1d9b5, metalness:.2, roughness:.5}));
   ring.position.z = 0.2; wheel.add(ring);
 }
 
@@ -314,8 +335,23 @@ document.getElementById("result-modal").addEventListener("click", e => { if (e.t
 
 // 滑鼠 / 觸控拖曳傾斜轉盤
 let dragging = false, tx = 0, ty = 0, lx = 0, ly = 0;
-renderer.domElement.addEventListener("pointerdown", e => { dragging = true; lx = e.clientX; ly = e.clientY; });
-addEventListener("pointerup", () => dragging = false);
+let downX = 0, downY = 0;
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function overHub(e){
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  return ray.intersectObjects([hub, hubLabel]).length > 0;
+}
+renderer.domElement.addEventListener("pointerdown", e => { dragging = true; lx = downX = e.clientX; ly = downY = e.clientY; });
+addEventListener("pointerup", e => {
+  dragging = false;
+  // 幾乎沒有位移 = 點擊；點到中間圓點就開始抽籤
+  if (e.target === renderer.domElement && Math.hypot(e.clientX - downX, e.clientY - downY) < 6 && overHub(e)) spin();
+});
+renderer.domElement.addEventListener("pointermove", e => {
+  if (!dragging) renderer.domElement.style.cursor = overHub(e) && !spinning ? "pointer" : "default";
+});
 addEventListener("pointermove", e => {
   if (!dragging) return;
   ty = Math.max(-0.6, Math.min(0.6, ty + (e.clientX - lx) * 0.005));
@@ -326,7 +362,7 @@ addEventListener("pointermove", e => {
 function resize(){
   const w = innerWidth, h = innerHeight;
   renderer.setSize(w, h); camera.aspect = w / h;
-  camera.position.x = w < 700 ? 0 : 2.2; camera.position.z = w < 700 ? 14 : 11;
+  camera.position.x = 0; camera.position.z = w < 700 ? 17 : 13;
   camera.updateProjectionMatrix();
 }
 addEventListener("resize", resize); resize();
@@ -341,7 +377,12 @@ addEventListener("resize", resize); resize();
   renderer.render(scene, camera);
 })();
 
-refresh();
+refresh(); drawHub();
+// 粉圓體載入完成後，重畫轉盤與中心圓點的文字貼圖
+if (document.fonts && document.fonts.load){
+  const sample = "GO沒有符合的餐廳" + RESTAURANTS.map(r => r.name).join("");
+  document.fonts.load('40px "Huninn"', sample).then(() => { if (!spinning) refresh(); drawHub(); }).catch(() => {});
+}
 </script>
 </body>
 </html>
