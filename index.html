@@ -6,6 +6,16 @@
 <title>煎心鍋貼 JIAN XIN｜金黃酥脆，傳承手藝的極致美味</title>
 <meta name="description" content="煎心鍋貼：台灣在地豬肉、每日現包、現點現煎。線上點餐、冷凍禮盒、門市據點一次看。">
 
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#4a2f1f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="煎心鍋貼">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
 <!-- Tailwind CSS CDN -->
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -1232,6 +1242,12 @@ observeReveals();
   }
 })();
 
+/* ================================================================
+   PWA：註冊 Service Worker（需 https 或 localhost）
+   ================================================================ */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW 註冊失敗', err)));
+}
 refreshIcons();
 </script>
 </body>
