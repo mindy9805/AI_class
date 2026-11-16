@@ -2,19 +2,20 @@
 <html lang="zh-TW" class="scroll-smooth">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>煎心鍋貼 JIAN XIN｜金黃酥脆，傳承手藝的極致美味</title>
 <meta name="description" content="煎心鍋貼：台灣在地豬肉、每日現包、現點現煎。線上點餐、冷凍禮盒、門市據點一次看。">
 
 <!-- PWA -->
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#4a2f1f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="煎心鍋貼">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
 
 <!-- Tailwind CSS CDN -->
 <script src="https://cdn.tailwindcss.com"></script>
@@ -88,6 +89,9 @@
   @media (max-width:639px){.street-caption{letter-spacing:.12em;font-size:11px}}
   .street-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:5}
   .street.is-3d>*:not(.street-canvas):not(.street-caption){display:none}
+  /* PWA：安全區域與獨立視窗模式 */
+  @media (display-mode:standalone){#bookFab{bottom:calc(1.25rem + env(safe-area-inset-bottom))}#toasts{bottom:calc(7rem + env(safe-area-inset-bottom))}}
+  .pwa-banner{position:fixed;left:50%;transform:translateX(-50%);z-index:90;display:flex;align-items:center;gap:12px;max-width:calc(100% - 24px);padding:10px 14px;border-radius:999px;font-size:13px;box-shadow:0 10px 30px rgba(46,27,16,.35)}
   /* 人來人往：行走剪影 */
   .crowd{position:absolute;inset:0;z-index:10;pointer-events:none;overflow:hidden}
   .walker{position:absolute;left:0;will-change:transform;animation-timing-function:linear;animation-iteration-count:infinite}
@@ -152,6 +156,7 @@
       <a class="mnav py-3 border-b border-wood/10" href="#gifts">冷凍禮盒</a>
       <a class="mnav py-3 border-b border-wood/10" href="#locations">門市據點</a>
       <a class="mnav py-3 border-b border-wood/10" href="#contact">聯絡我們</a>
+      <button type="button" data-install-open class="mnav py-3 text-left border-b border-wood/10">安裝 App 到主畫面</button>
       <a class="mnav mt-3 rounded-full bg-ember py-3 text-center font-bold text-white" href="#order">立即點餐</a>
     </div>
   </nav>
@@ -369,6 +374,7 @@
         <li><a class="hover:text-ember-light" href="#gifts">冷凍禮盒</a></li>
         <li><a class="hover:text-ember-light" href="#locations">門市據點</a></li>
         <li><a class="hover:text-ember-light" href="#faq">常見問題</a></li>
+        <li><button type="button" data-install-open class="hover:text-ember-light">安裝 App</button></li>
       </ul>
     </div>
     <div>
@@ -485,6 +491,24 @@
   </span>
   <i data-lucide="arrow-up-right" class="h-4 w-4 text-white/80 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"></i>
 </a>
+
+<!-- ============ PWA：安裝說明／更新提示／離線提示 ============ -->
+<div id="installModal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-wood-dark/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="installTitle">
+  <div class="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-3xl bg-cream p-7 shadow-2xl">
+    <div class="flex items-start justify-between"><h2 id="installTitle" class="font-serif text-2xl font-black text-wood">把煎心鍋貼加入主畫面</h2><button type="button" id="installClose" class="grid h-9 w-9 place-items-center rounded-full hover:bg-wood/10" aria-label="關閉"><i data-lucide="x" class="h-5 w-5"></i></button></div>
+    <div class="mt-5 flex items-center gap-4"><img src="./icons/icon-192.png" alt="發光鍋貼 App 圖示" class="h-20 w-20 rounded-[1.25rem] shadow-lg"><div><p class="font-bold text-wood">煎心鍋貼 JIAN XIN</p><p class="text-sm text-wood/70">從主畫面一鍵開啟，點餐更快。</p></div></div>
+    <p id="pwaStatus" class="mt-4 rounded-xl bg-white px-4 py-3 text-sm text-wood/80" aria-live="polite">正在準備離線功能…</p>
+    <button type="button" id="nativeInstall" class="mt-4 hidden w-full rounded-full bg-ember py-3 font-bold text-white shadow hover:bg-ember-dark">立即安裝</button>
+    <ol class="mt-5 list-decimal space-y-2 pl-5 text-sm leading-6 text-wood/80">
+      <li><b>iPhone / iPad</b>：用 Safari 開啟，點「分享」→「加入主畫面」→「加入」。</li>
+      <li><b>Android</b>：用 Chrome 開啟，按「立即安裝」，或使用選單的「安裝應用程式／加入主畫面」。</li>
+      <li><b>電腦 Chrome / Edge</b>：點網址列的安裝圖示，或瀏覽器選單的安裝選項。</li>
+    </ol>
+    <p class="mt-4 text-xs leading-5 text-wood/50">請先連線開啟一次以建立離線快取。離線時可瀏覽已載入的菜單與圖片，送出訂單需要連線。</p>
+  </div>
+</div>
+<div id="updateBar" class="pwa-banner bottom-24 bg-wood text-cream" role="status" hidden><span>新版本已準備好。</span><button type="button" id="applyUpdate" class="rounded-full bg-ember px-4 py-1.5 font-bold text-white hover:bg-ember-dark">更新並重新開啟</button></div>
+<div id="offlineBar" class="fixed inset-x-0 bottom-0 z-[90] bg-wood-light px-3 py-2 text-center text-xs text-white" style="padding-bottom:calc(.5rem + env(safe-area-inset-bottom))" role="status" hidden>目前離線，可瀏覽已快取內容；送出訂單需要連線。</div>
 
 <!-- Toast 容器 -->
 <div id="toasts" class="pointer-events-none fixed bottom-28 right-4 z-[80] flex flex-col gap-2" aria-live="polite"></div>
@@ -1280,11 +1304,61 @@ observeReveals();
 })();
 
 /* ================================================================
-   PWA：註冊 Service Worker（需 https 或 localhost）
+   PWA：安裝入口、離線提示、Service Worker 註冊與更新
    ================================================================ */
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW 註冊失敗', err)));
-}
+(function () {
+  const modal = $('#installModal');
+  let installPrompt = null, swReg = null, updating = false;
+  const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const setStatus = t => { $('#pwaStatus').textContent = t; };
+
+  function syncInstallUI() {
+    $$('[data-install-open]').forEach(b => { (b.closest('li') || b).hidden = isStandalone(); });
+    $('#nativeInstall').classList.toggle('hidden', !installPrompt);
+  }
+  function openInstall() { modal.classList.remove('hidden'); modal.classList.add('flex'); lockScroll(true); refreshIcons(); }
+  function closeInstall() { if (modal.classList.contains('hidden')) return; modal.classList.add('hidden'); modal.classList.remove('flex'); lockScroll(false); }
+  $$('[data-install-open]').forEach(b => b.addEventListener('click', openInstall));
+  $('#installClose').addEventListener('click', closeInstall);
+  modal.addEventListener('click', e => { if (e.target === modal) closeInstall(); });
+  addEventListener('keydown', e => { if (e.key === 'Escape') closeInstall(); });
+
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; syncInstallUI(); });
+  addEventListener('appinstalled', () => { installPrompt = null; syncInstallUI(); closeInstall(); toast('煎心鍋貼已加入你的應用程式'); });
+  $('#nativeInstall').addEventListener('click', async () => {
+    if (!installPrompt) return;
+    const p = installPrompt; installPrompt = null; syncInstallUI();
+    try { await p.prompt(); const c = await p.userChoice; if (c.outcome === 'accepted') closeInstall(); }
+    catch { toast('請從瀏覽器選單選擇「安裝應用程式」', 'info'); }
+  });
+
+  const syncNet = () => { $('#offlineBar').hidden = navigator.onLine; };
+  addEventListener('online', syncNet); addEventListener('offline', syncNet);
+  syncNet(); syncInstallUI();
+
+  if ('serviceWorker' in navigator && isSecureContext && location.protocol !== 'file:') {
+    addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        swReg = reg;
+        const showUpdate = () => { if (reg.waiting && navigator.serviceWorker.controller) $('#updateBar').hidden = false; };
+        showUpdate();
+        reg.addEventListener('updatefound', () => {
+          const w = reg.installing;
+          if (w) w.addEventListener('statechange', () => { if (w.state === 'installed') showUpdate(); });
+        });
+        return navigator.serviceWorker.ready;
+      }).then(() => setStatus('離線功能已就緒，可依下方步驟加入主畫面。'))
+        .catch(() => setStatus('離線功能尚未完成載入，請連線後重新整理；其他功能仍可使用。'));
+    });
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (updating) location.reload(); });
+    $('#applyUpdate').addEventListener('click', () => {
+      if (swReg && swReg.waiting) { updating = true; swReg.waiting.postMessage({ type: 'SKIP_WAITING' }); }
+      else location.reload();
+    });
+  } else {
+    setStatus('請將網站部署到 HTTPS 網址再開啟安裝；直接開啟 HTML 檔無法啟用離線功能。');
+  }
+})();
 refreshIcons();
 </script>
 </body>
