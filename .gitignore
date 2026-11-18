@@ -1,2 +1,3 @@
 # 本機打包檔
 *.zip
+node_modules/

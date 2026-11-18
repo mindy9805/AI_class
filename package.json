@@ -1,0 +1,19 @@
+{
+  "name": "jianxin-gyoza",
+  "version": "1.0.0",
+  "description": "煎心鍋貼 JIAN XIN：線上點餐、3D 街景、Google Sheets 結帳串接的 PWA 靜態網站",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "scripts": {
+    "start": "serve -l 5500 .",
+    "dev": "serve -l 5500 .",
+    "check": "node --check street3d.js && node --check sw.js && node -e \"JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8'));console.log('manifest OK')\""
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
