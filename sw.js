@@ -6,13 +6,14 @@
  * 發新版時請把 VERSION 加 1。
  */
 const PREFIX = 'jianxin-' + encodeURIComponent(self.registration.scope) + '-';
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CORE = PREFIX + VERSION + '-core';
 const RUNTIME = PREFIX + VERSION + '-runtime';
 const scoped = p => new URL(p, self.registration.scope).href;
 const SHELL = scoped('index.html');
 const OFFLINE = scoped('offline.html');
-const ASSETS = ['index.html', 'offline.html', 'manifest.webmanifest', 'images/hero-poster.webp', 'street3d.js',
+const ORDERS = scoped('orders.html');
+const ASSETS = ['index.html', 'orders.html', 'offline.html', 'manifest.webmanifest', 'images/hero-poster.webp', 'street3d.js',
   'icons/icon-v2-192.png', 'icons/icon-v2-512.png', 'icons/icon-v2-maskable-512.png', 'icons/apple-touch-icon-v2.png', 'icons/favicon-v2-32.png'].map(scoped);
 const CDN_HOSTS = ['images.unsplash.com', 'cdn.tailwindcss.com', 'unpkg.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
@@ -48,10 +49,12 @@ self.addEventListener('fetch', e => {
       try {
         const res = await fetch(req);
         if (res.ok && (url.pathname === new URL(self.registration.scope).pathname || url.pathname === new URL(SHELL).pathname)) core.put(SHELL, res.clone());
+        if (res.ok && url.pathname === new URL(ORDERS).pathname) core.put(ORDERS, res.clone());
         return res;
       } catch {
         const isHome = url.pathname === new URL(self.registration.scope).pathname || url.pathname === new URL(SHELL).pathname;
-        return (isHome && (await core.match(SHELL))) || (await core.match(OFFLINE)) || Response.error();
+        const isOrders = url.pathname === new URL(ORDERS).pathname;
+        return (isHome && (await core.match(SHELL))) || (isOrders && (await core.match(ORDERS))) || (await core.match(OFFLINE)) || Response.error();
       }
     })());
     return;

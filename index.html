@@ -131,6 +131,7 @@
       <a class="hover:text-ember transition" href="#order">線上點餐</a>
       <a class="hover:text-ember transition" href="#gifts">冷凍禮盒</a>
       <a class="hover:text-ember transition" href="#locations">門市據點</a>
+      <a class="hover:text-ember transition" href="./orders.html">訂單查詢</a>
       <a class="hover:text-ember transition" href="#contact">聯絡我們</a>
     </nav>
 
@@ -156,6 +157,7 @@
       <a class="mnav py-3 border-b border-wood/10" href="#order">線上點餐</a>
       <a class="mnav py-3 border-b border-wood/10" href="#gifts">冷凍禮盒</a>
       <a class="mnav py-3 border-b border-wood/10" href="#locations">門市據點</a>
+      <a class="mnav py-3 border-b border-wood/10" href="./orders.html">訂單查詢</a>
       <a class="mnav py-3 border-b border-wood/10" href="#contact">聯絡我們</a>
       <button type="button" data-install-open class="mnav py-3 text-left border-b border-wood/10">安裝 App 到主畫面</button>
       <a class="mnav mt-3 rounded-full bg-ember py-3 text-center font-bold text-white" href="#order">立即點餐</a>
@@ -374,6 +376,7 @@
         <li><a class="hover:text-ember-light" href="#order">線上點餐</a></li>
         <li><a class="hover:text-ember-light" href="#gifts">冷凍禮盒</a></li>
         <li><a class="hover:text-ember-light" href="#locations">門市據點</a></li>
+        <li><a class="hover:text-ember-light" href="./orders.html">訂單查詢</a></li>
         <li><a class="hover:text-ember-light" href="#faq">常見問題</a></li>
         <li><button type="button" data-install-open class="hover:text-ember-light">安裝 App</button></li>
       </ul>
@@ -464,7 +467,10 @@
         <p class="mt-2 flex justify-between"><span class="text-wood/60">預計時間</span><b id="okEta"></b></p>
       </div>
       <p class="mt-4 text-xs text-wood/50">※ 此為示範網站，不會產生實際訂單或扣款。</p>
-      <button type="button" class="coClose mt-6 rounded-full bg-wood px-8 py-3 font-bold text-cream hover:bg-wood-light">回到首頁</button>
+      <div class="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <a id="okTrack" href="./orders.html" class="hidden items-center gap-2 rounded-full bg-ember px-8 py-3 font-bold text-white hover:bg-ember-dark"><i data-lucide="search" class="h-4 w-4"></i>查詢訂單進度</a>
+        <button type="button" class="coClose rounded-full bg-wood px-8 py-3 font-bold text-cream hover:bg-wood-light">回到首頁</button>
+      </div>
     </div>
   </div>
 </div>
@@ -834,11 +840,17 @@ $('#checkoutBtn').addEventListener('click', openCheckout);
 $$('.coClose').forEach(b => b.addEventListener('click', closeCheckout));
 coModal.addEventListener('click', e => { if (e.target === coModal) closeCheckout(); });
 
-function showOrderSuccess({ no, type, total, eta }) {
+function showOrderSuccess({ no, type, total, eta, phone }) {
   $('#okNo').textContent = no;
   $('#okType').textContent = type;
   $('#okTotal').textContent = money(total);
   $('#okEta').textContent = eta;
+  // 訂單查詢：記住最近一筆（orders.html 讀同一個 key），並提供查詢連結
+  const track = $('#okTrack');
+  if (phone) {
+    try { localStorage.setItem('jx:lastOrder', JSON.stringify({ orderNo: no, phone })); } catch (e) {}
+    track.href = './orders.html?no=' + encodeURIComponent(no); track.classList.remove('hidden'); track.classList.add('inline-flex');
+  } else { track.classList.add('hidden'); track.classList.remove('inline-flex'); }
   $('#coFormView').classList.add('hidden'); $('#coSuccessView').classList.remove('hidden');
   cart.length = 0; renderCart(); coForm.reset(); coReqId = '';
   refreshIcons();
@@ -870,7 +882,7 @@ coForm.addEventListener('submit', async e => {
     const res = await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || '訂單送出失敗');
-    showOrderSuccess({ no: data.orderNo, type: data.type, total: data.total, eta: data.eta });
+    showOrderSuccess({ no: data.orderNo, type: data.type, total: data.total, eta: data.eta, phone: payload.phone });
   } catch (err) {
     toast(err instanceof TypeError ? '網路連線異常，訂單尚未送出，請重試' : err.message, 'alert-triangle');
   } finally {

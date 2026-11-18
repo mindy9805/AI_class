@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>訂單查詢｜煎心鍋貼 JIAN XIN</title>
+<meta name="description" content="輸入訂單編號與手機號碼，查詢煎心鍋貼訂單的製作進度。">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#4a2f1f">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-v2-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon-v2.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@500;700;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: {
+      wood:  { DEFAULT:'#4a2f1f', dark:'#2e1b10', light:'#7a5238' },
+      ember: { DEFAULT:'#d9782b', dark:'#b95f18', light:'#f3a461' },
+      cream: { DEFAULT:'#faf3e8', deep:'#efe2cf' }
+    },
+    fontFamily: {
+      serif: ['"Noto Serif TC"','"Songti TC"','serif'],
+      sans:  ['"Noto Sans TC"','"PingFang TC"','"Microsoft JhengHei"','sans-serif']
+    }
+  } } }
+</script>
+<style>
+  body{font-family:'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif}
+  .spin{animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+</head>
+<body class="bg-cream text-wood antialiased">
+
+<header class="border-b border-wood/10 bg-cream/90">
+  <div class="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
+    <a href="./" class="flex items-center gap-2" aria-label="煎心鍋貼 首頁">
+      <span class="grid h-9 w-9 place-items-center rounded-full bg-wood text-cream"><i data-lucide="flame" class="h-5 w-5 text-ember-light"></i></span>
+      <span class="leading-tight">
+        <span class="block font-serif text-lg font-bold">煎心鍋貼</span>
+        <span class="block text-[10px] tracking-[0.3em] text-wood-light">JIAN XIN</span>
+      </span>
+    </a>
+    <a href="./#order" class="rounded-full border border-wood/30 px-4 py-2 text-sm font-medium hover:bg-wood hover:text-cream transition">回到點餐</a>
+  </div>
+</header>
+
+<main class="mx-auto max-w-3xl px-4 py-10 sm:py-14">
+  <h1 class="font-serif text-3xl font-black sm:text-4xl">訂單查詢</h1>
+  <p class="mt-2 text-sm text-wood/70">請輸入訂單編號與下單時的手機號碼，查看訂單目前進度。</p>
+
+  <form id="trackForm" class="mt-6 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-wood/10 sm:p-6" novalidate>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <label class="block text-sm font-medium">訂單編號
+        <input id="fNo" name="orderNo" required maxlength="12" autocomplete="off" autocapitalize="characters" placeholder="例：JX2611180001"
+               class="mt-1 w-full rounded-xl border border-wood/20 px-3 py-2.5 uppercase focus:border-ember focus:outline-none">
+      </label>
+      <label class="block text-sm font-medium">手機號碼
+        <input id="fPhone" name="phone" required inputmode="numeric" maxlength="10" autocomplete="tel" placeholder="09xxxxxxxx"
+               class="mt-1 w-full rounded-xl border border-wood/20 px-3 py-2.5 focus:border-ember focus:outline-none">
+      </label>
+    </div>
+    <button type="submit" id="qBtn" class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ember px-6 py-3 font-bold text-white hover:bg-ember-dark transition sm:w-auto">
+      <i data-lucide="search" class="h-5 w-5"></i>查詢訂單
+    </button>
+  </form>
+
+  <p id="msg" role="alert" aria-live="polite" class="mt-4 hidden rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+
+  <section id="result" class="mt-6 hidden rounded-3xl bg-white p-5 shadow-sm ring-1 ring-wood/10 sm:p-6" aria-live="polite">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p class="text-xs text-wood/60">訂單編號</p>
+        <p id="rNo" class="font-serif text-2xl font-black"></p>
+      </div>
+      <span id="rStatus" class="rounded-full px-4 py-1.5 text-sm font-bold"></span>
+    </div>
+
+    <ol id="steps" class="mt-6 grid grid-cols-4 gap-1 text-center text-xs sm:text-sm" aria-label="訂單進度"></ol>
+
+    <div class="mt-6 border-t border-wood/10 pt-4">
+      <h2 class="text-sm font-bold">訂購品項</h2>
+      <ul id="rItems" class="mt-2 divide-y divide-wood/10 text-sm"></ul>
+      <dl class="mt-3 space-y-1 text-sm">
+        <div class="flex justify-between"><dt class="text-wood/60">小計</dt><dd id="rSub"></dd></div>
+        <div class="flex justify-between"><dt class="text-wood/60">運費</dt><dd id="rShip"></dd></div>
+        <div class="flex justify-between text-base"><dt class="font-bold">應付總額</dt><dd id="rTotal" class="font-bold text-ember-dark"></dd></div>
+      </dl>
+    </div>
+
+    <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-wood/10 pt-4 text-sm">
+      <div class="space-y-0.5 text-wood/70">
+        <p>取餐方式：<span id="rType"></span>　預計時間：<span id="rEta"></span></p>
+        <p>狀態更新時間：<b id="rUpdated" class="text-wood"></b></p>
+        <p class="text-xs">最後查詢：<span id="rChecked"></span></p>
+      </div>
+      <button type="button" id="refreshBtn" class="inline-flex items-center gap-2 rounded-full bg-wood px-5 py-2.5 font-bold text-cream hover:bg-wood-light transition">
+        <i data-lucide="refresh-cw" id="refreshIcon" class="h-4 w-4"></i><span id="refreshLabel">重新查詢</span>
+      </button>
+    </div>
+  </section>
+
+  <p class="mt-6 text-center text-xs text-wood/50">
+    查不到訂單？請來電客服 02-2700-1234 並告知訂單編號。
+    <button type="button" id="clearBtn" class="ml-2 underline hover:text-ember">清除本機記錄</button>
+  </p>
+</main>
+
+<script>
+/* 與 index.html 的 GAS_URL 相同（Apps Script Web App） */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzrqjth0EM5W5nz68mM1dCscUvVIOa1NolIapJpl2HAGasQZUef6UKp2h1OZiIuFna52g/exec';
+const STATUSES = ['已收到', '製作中', '可取餐', '已完成'];
+const STATUS_STYLE = {
+  '已收到': 'bg-amber-100 text-amber-800', '製作中': 'bg-blue-100 text-blue-800',
+  '可取餐': 'bg-orange-100 text-orange-800', '已完成': 'bg-emerald-100 text-emerald-800'
+};
+const $ = s => document.querySelector(s);
+const money = n => 'NT$ ' + Number(n || 0).toLocaleString('en-US');
+const KEY = 'jx:lastOrder';
+let current = null, busy = false;
+
+const store = {
+  get() { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } },
+  set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} },
+  del() { try { localStorage.removeItem(KEY); } catch (e) {} }
+};
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtTime = iso => {
+  const d = new Date(iso); if (isNaN(d)) return '—';
+  return d.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+};
+
+function showMsg(t) { const m = $('#msg'); m.textContent = t || ''; m.classList.toggle('hidden', !t); }
+function setBusy(b) {
+  busy = b;
+  $('#qBtn').disabled = b; $('#refreshBtn').disabled = b;
+  $('#refreshIcon').classList.toggle('spin', b);
+  $('#refreshLabel').textContent = b ? '查詢中…' : '重新查詢';
+}
+
+function render(d) {
+  const idx = Math.max(STATUSES.indexOf(d.status), 0);
+  $('#rNo').textContent = d.orderNo;
+  const st = $('#rStatus'); st.textContent = d.status; st.className = 'rounded-full px-4 py-1.5 text-sm font-bold ' + (STATUS_STYLE[d.status] || 'bg-wood/10');
+  $('#steps').innerHTML = STATUSES.map((s, i) => {
+    const done = i <= idx, now = i === idx;
+    return `<li class="flex flex-col items-center gap-1.5 ${done ? 'text-wood' : 'text-wood/40'}"${now ? ' aria-current="step"' : ''}>
+      <span class="grid h-9 w-9 place-items-center rounded-full ${done ? 'bg-ember text-white' : 'bg-wood/10'} ${now ? 'ring-4 ring-ember/25' : ''}">
+        <i data-lucide="${done ? 'check' : 'circle'}" class="h-4 w-4"></i></span>
+      <span class="${now ? 'font-bold' : ''}">${s}</span></li>`;
+  }).join('');
+  $('#rItems').innerHTML = (d.items || []).map(it =>
+    `<li class="flex justify-between gap-3 py-2"><span>${esc(it.name)} ×${it.qty}</span><span>${money(it.price * it.qty)}</span></li>`).join('');
+  $('#rSub').textContent = money(d.subtotal); $('#rShip').textContent = money(d.ship); $('#rTotal').textContent = money(d.total);
+  $('#rType').textContent = d.type || '—'; $('#rEta').textContent = d.eta || '—';
+  $('#rUpdated').textContent = fmtTime(d.updatedAt);
+  $('#rChecked').textContent = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+  $('#result').classList.remove('hidden');
+  lucide.createIcons();
+}
+
+async function query(orderNo, phone, silent) {
+  if (busy) return;
+  showMsg('');
+  if (!/^JX\d{10}$/.test(orderNo)) return showMsg('訂單編號格式不正確（例：JX2611180001）');
+  if (!/^09\d{8}$/.test(phone)) return showMsg('手機號碼格式不正確（09 開頭共 10 碼）');
+  setBusy(true);
+  try {
+    const url = GAS_URL + '?action=track&orderNo=' + encodeURIComponent(orderNo) + '&phone=' + encodeURIComponent(phone) + '&_=' + Date.now();
+    const res = await fetch(url, { cache: 'no-store' });
+    const d = await res.json();
+    if (!d.ok) { if (!silent || !current) $('#result').classList.add('hidden'); throw new Error(d.error || '查詢失敗'); }
+    current = { orderNo, phone }; store.set(current); render(d);
+  } catch (err) {
+    showMsg(err instanceof TypeError ? '網路連線異常，請檢查網路後按「重新查詢」。' : err.message);
+  } finally { setBusy(false); }
+}
+
+$('#trackForm').addEventListener('submit', e => {
+  e.preventDefault();
+  query($('#fNo').value.trim().toUpperCase(), $('#fPhone').value.trim());
+});
+$('#refreshBtn').addEventListener('click', () => {
+  const c = current || store.get();
+  if (c) query(c.orderNo, c.phone);
+});
+$('#clearBtn').addEventListener('click', () => {
+  store.del(); current = null; $('#trackForm').reset(); $('#result').classList.add('hidden'); showMsg('');
+});
+
+/* 啟動：網址參數 ?no= 優先，其次讀取本機記錄；有手機才自動查詢 */
+(function init() {
+  const p = new URLSearchParams(location.search), saved = store.get() || {};
+  const no = (p.get('no') || saved.orderNo || '').toUpperCase();
+  const phone = saved.orderNo === no ? (saved.phone || '') : '';
+  $('#fNo').value = no; $('#fPhone').value = phone;
+  lucide.createIcons();
+  if (no && phone) query(no, phone, true);
+  else if (no) $('#fPhone').focus();
+})();
+</script>
+</body>
+</html>

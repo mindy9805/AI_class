@@ -8,6 +8,8 @@
 const CONFIG = {
   SHOP_EMAIL: 'your-shop@example.com',     // 店家收件信箱（新訂單通知＋每日摘要）
   SHOP_NAME: '煎心鍋貼 JIAN XIN',
+  SITE_URL: '',                              // 網站網址（結尾要有 /），例：https://xxx.github.io/AI_class/ ；填了客人確認信才會附「查詢訂單」連結
+  TRACK_LIMIT_PER_MIN: 20,                   // 同一手機每分鐘最多查詢次數
   SHEET_NAME: '訂單',
   TIMEZONE: 'Asia/Taipei',
   FREE_SHIP: 1000,                           // 宅配滿額免運
@@ -46,13 +48,19 @@ const PRICES = {
 };
 
 const ORDER_TYPES = ['內用', '外帶', '宅配'];
-const STATUSES = ['待處理', '製作中', '已完成', '已取消'];
+const STATUSES = ['已收到', '製作中', '可取餐', '已完成'];   // 順序固定；訂單查詢頁的進度條依此順序，字串不可改
+const LEGACY_STATUS = { '待處理': '已收到' };               // 舊狀態 → 新狀態（migrateStatuses 使用）
+const CANCELLED = '已取消';                                 // 不在下拉選單；舊資料若有，保留並從營收排除
 const HEADERS = ['訂單編號', '建立時間', '狀態', '姓名', '手機', 'Email', '取餐方式', '門市／地址', '備註',
-                 '商品明細', '件數', '小計', '運費', '總額', '預計時間', '商品JSON'];
+                 '商品明細', '件數', '小計', '運費', '總額', '預計時間', '商品JSON', '狀態更新時間'];
 const COL = HEADERS.reduce((o, h, i) => (o[h] = i + 1, o), {});
 
 /* ===================== Web App 入口 ===================== */
-function doGet() { return json_({ ok: true, service: CONFIG.SHOP_NAME, time: new Date().toISOString() }); }
+function doGet(e) {
+  const q = (e && e.parameter) || {};
+  if (q.action === 'track') return json_(track_(q.orderNo, q.phone));
+  return json_({ ok: true, service: CONFIG.SHOP_NAME, time: new Date().toISOString() });
+}
 
 function doPost(e) {
   try {
@@ -83,8 +91,9 @@ function doPost(e) {
     try {
       const sh = getSheet_();
       orderNo = nextOrderNo_(sh);
-      sh.appendRow([orderNo, new Date(), '待處理', o.name, "'" + o.phone, o.email, o.type, o.type === '宅配' ? o.address : o.store,
-                    o.note, o.itemsText, o.count, o.subtotal, o.ship, o.total, o.eta, JSON.stringify(o.lines)]);
+      const now = new Date();
+      sh.appendRow([orderNo, now, STATUSES[0], o.name, "'" + o.phone, o.email, o.type, o.type === '宅配' ? o.address : o.store,
+                    o.note, o.itemsText, o.count, o.subtotal, o.ship, o.total, o.eta, JSON.stringify(o.lines), now]);
       SpreadsheetApp.flush();
     } finally { lock.releaseLock(); }
 
@@ -167,8 +176,9 @@ function setup() {
 function formatSheet_(sh) {
   sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold').setBackground('#4a2f1f').setFontColor('#faf3e8');
   sh.setFrozenRows(1);
-  [130, 150, 80, 90, 110, 200, 80, 220, 160, 260, 60, 80, 70, 90, 110, 60].forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  [130, 150, 80, 90, 110, 200, 80, 220, 160, 260, 60, 80, 70, 90, 110, 60, 150].forEach((w, i) => sh.setColumnWidth(i + 1, w));
   sh.getRange('B:B').setNumberFormat('yyyy-mm-dd hh:mm:ss');
+  sh.getRange('Q:Q').setNumberFormat('yyyy-mm-dd hh:mm:ss');
   sh.getRange('E:E').setNumberFormat('@');
   sh.getRange('J:J').setWrap(true);
   sh.getRange('L:N').setNumberFormat('#,##0');
@@ -179,7 +189,7 @@ function formatSheet_(sh) {
   const rng = [sh.getRange(2, 1, rows, HEADERS.length)];
   const colorRule = (status, bg) => SpreadsheetApp.newConditionalFormatRule()
     .whenFormulaSatisfied('=$C2="' + status + '"').setBackground(bg).setRanges(rng).build();
-  sh.setConditionalFormatRules([colorRule('待處理', '#fff3cd'), colorRule('製作中', '#cfe2ff'), colorRule('已完成', '#d1e7dd'), colorRule('已取消', '#e2e3e5')]);
+  sh.setConditionalFormatRules([colorRule('已收到', '#fff3cd'), colorRule('製作中', '#cfe2ff'), colorRule('可取餐', '#ffe0c2'), colorRule('已完成', '#d1e7dd'), colorRule(CANCELLED, '#e2e3e5')]);
 }
 
 /* ===================== 通知信 ===================== */
@@ -202,6 +212,7 @@ function sendCustomerMail_(orderNo, o) {
     '<table width="100%" style="border-top:1px solid #d9c7ad;border-bottom:1px solid #d9c7ad;margin:12px 0">' + itemsRows_(o) + '</table>' +
     '<p style="text-align:right;margin:0">小計 ' + money_(o.subtotal) + '　運費 ' + money_(o.ship) + '<br><b style="font-size:18px;color:#b95f18">應付總額 ' + money_(o.total) + '</b></p>' +
     (o.note ? '<p>備註：' + esc_(o.note) + '</p>' : '') +
+    (CONFIG.SITE_URL ? '<p><a href="' + CONFIG.SITE_URL + 'orders.html?no=' + orderNo + '" style="display:inline-block;background:#d9782b;color:#fff;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:bold">查詢訂單進度</a></p>' : '') +
     '<p style="font-size:12px;color:#7a5238">如需修改或取消，請來電客服 02-2700-1234 並告知訂單編號。</p>');
   MailApp.sendEmail({ to: o.email, subject: '【' + CONFIG.SHOP_NAME + '】訂單確認 ' + orderNo, htmlBody: html, name: CONFIG.SHOP_NAME });
 }
@@ -225,7 +236,7 @@ function sendDailySummary() {
   const rows = last > 1 ? sh.getRange(2, 1, last - 1, HEADERS.length).getValues() : [];
   const todays = rows.filter(r => r[COL['建立時間'] - 1] instanceof Date &&
     Utilities.formatDate(r[COL['建立時間'] - 1], CONFIG.TIMEZONE, 'yyyy-MM-dd') === today);
-  const valid = todays.filter(r => r[COL['狀態'] - 1] !== '已取消');
+  const valid = todays.filter(r => r[COL['狀態'] - 1] !== CANCELLED);
   const revenue = valid.reduce((s, r) => s + Number(r[COL['總額'] - 1] || 0), 0);
   const byType = {}, byItem = {};
   valid.forEach(r => {
@@ -233,12 +244,77 @@ function sendDailySummary() {
     try { JSON.parse(r[COL['商品JSON'] - 1]).forEach(l => { const n = PRICES[l.id] ? PRICES[l.id].name : l.id; byItem[n] = (byItem[n] || 0) + l.qty; }); } catch (e) {}
   });
   const top = Object.keys(byItem).sort((a, b) => byItem[b] - byItem[a]).slice(0, 5);
-  const pending = todays.filter(r => r[COL['狀態'] - 1] === '待處理').length;
+  const pending = todays.filter(r => r[COL['狀態'] - 1] === STATUSES[0]).length;
   const html = mailShell_(today + ' 營收摘要',
     '<p>有效訂單：<b>' + valid.length + '</b> 筆（取消 ' + (todays.length - valid.length) + ' 筆）<br>營收：<b style="font-size:20px;color:#b95f18">' + money_(revenue) + '</b>' +
     (valid.length ? '<br>客單價：' + money_(Math.round(revenue / valid.length)) : '') + '</p>' +
     '<p>取餐方式：' + (Object.keys(byType).map(k => k + ' ' + byType[k]).join('、') || '—') + '</p>' +
     '<p>熱銷 Top 5：<br>' + (top.map((n, i) => (i + 1) + '. ' + esc_(n) + ' ×' + byItem[n]).join('<br>') || '—') + '</p>' +
-    (pending ? '<p style="color:#c0392b">⚠ 仍有 ' + pending + ' 筆「待處理」訂單。</p>' : ''));
+    (pending ? '<p style="color:#c0392b">⚠ 仍有 ' + pending + ' 筆「' + STATUSES[0] + '」訂單尚未開始製作。</p>' : ''));
   MailApp.sendEmail({ to: CONFIG.SHOP_EMAIL, subject: '【每日摘要】' + today + '｜' + valid.length + ' 筆｜' + money_(revenue), htmlBody: html, name: CONFIG.SHOP_NAME });
+}
+
+/* ===================== 訂單查詢（GET ?action=track&orderNo=…&phone=…） ===================== */
+const NOT_FOUND = '查無此訂單，請確認訂單編號與手機號碼是否正確。';
+function iso_(d) { return Utilities.formatDate(d, CONFIG.TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX"); }
+
+function track_(orderNo, phone) {
+  orderNo = String(orderNo || '').trim().toUpperCase(); phone = String(phone || '').trim();
+  // 每支手機每分鐘上限（含格式錯誤的嘗試），避免被拿來猜編號
+  const cache = CacheService.getScriptCache(), k = 'trk:' + (phone || 'x').slice(0, 12);
+  const n = Number(cache.get(k) || 0) + 1; cache.put(k, String(n), 60);
+  if (n > CONFIG.TRACK_LIMIT_PER_MIN) return { ok: false, error: '查詢過於頻繁，請稍後再試。' };
+  if (!/^JX\d{10}$/.test(orderNo) || !/^09\d{8}$/.test(phone)) return { ok: false, error: NOT_FOUND };
+
+  const sh = getSheet_();
+  const hit = sh.getRange(1, COL['訂單編號'], Math.max(sh.getLastRow(), 1), 1).createTextFinder(orderNo).matchEntireCell(true).findNext();
+  if (!hit || hit.getRow() < 2) return { ok: false, error: NOT_FOUND };
+  const r = sh.getRange(hit.getRow(), 1, 1, HEADERS.length).getValues()[0];
+  const g = name => r[COL[name] - 1];
+  if (String(g('手機')).replace(/\D/g, '') !== phone) return { ok: false, error: NOT_FOUND };   // 編號或手機錯誤一律同訊息
+
+  const status = String(g('狀態'));
+  if (status === CANCELLED) return { ok: false, error: '此訂單已取消，如有疑問請來電客服 02-2700-1234。' };
+  let lines = []; try { lines = JSON.parse(g('商品JSON')) || []; } catch (e) {}
+  const created = g('建立時間') instanceof Date ? g('建立時間') : new Date();
+  const updated = g('狀態更新時間') instanceof Date ? g('狀態更新時間') : created;
+  return {
+    ok: true, orderNo, status, type: String(g('取餐方式')), eta: String(g('預計時間')),
+    createdAt: iso_(created), updatedAt: iso_(updated),
+    items: lines.filter(l => PRICES[l.id]).map(l => ({ name: PRICES[l.id].name, qty: l.qty, price: PRICES[l.id].price })),
+    subtotal: Number(g('小計')), ship: Number(g('運費')), total: Number(g('總額'))
+  };
+}
+
+/* ===================== 狀態變更時間戳（簡易觸發器，手動改狀態欄時自動執行） ===================== */
+function onEdit(e) {
+  try {
+    const rg = e && e.range; if (!rg) return;
+    const sh = rg.getSheet(); if (sh.getName() !== CONFIG.SHEET_NAME) return;
+    if (rg.getColumn() > COL['狀態'] || rg.getLastColumn() < COL['狀態'] || rg.getLastRow() < 2) return;
+    const first = Math.max(rg.getRow(), 2), n = rg.getLastRow() - first + 1, now = new Date();
+    const vals = sh.getRange(first, COL['狀態'], n, 1).getValues();
+    vals.forEach((v, i) => { if (v[0] !== '') sh.getRange(first + i, COL['狀態更新時間']).setValue(now); });
+  } catch (err) { console.error(err); }
+}
+
+/* ===================== 舊資料轉換：執行一次即可 ===================== */
+/** 1) 更新標題列／下拉選單為四個新狀態  2) 舊狀態「待處理」→「已收到」  3) 補上「狀態更新時間」（缺值以建立時間填入）
+ *  「已取消」的舊訂單保留原樣（不在下拉選單，但不會被刪除，營收摘要與查詢頁都會排除）。 */
+function migrateStatuses() {
+  const sh = getSheet_(); formatSheet_(sh);
+  const last = sh.getLastRow(); if (last < 2) { SpreadsheetApp.getActiveSpreadsheet().toast('沒有舊訂單需要轉換'); return; }
+  const stR = sh.getRange(2, COL['狀態'], last - 1, 1), st = stR.getValues();
+  const crt = sh.getRange(2, COL['建立時間'], last - 1, 1).getValues();
+  const upR = sh.getRange(2, COL['狀態更新時間'], last - 1, 1), up = upR.getValues();
+  let changed = 0, kept = 0, unknown = 0;
+  for (let i = 0; i < st.length; i++) {
+    const v = String(st[i][0]);
+    if (LEGACY_STATUS[v]) { st[i][0] = LEGACY_STATUS[v]; changed++; }
+    else if (v === CANCELLED) kept++;
+    else if (STATUSES.indexOf(v) < 0 && v !== '') unknown++;
+    if (up[i][0] === '' && crt[i][0] instanceof Date) up[i][0] = crt[i][0];
+  }
+  stR.setValues(st); upR.setValues(up);
+  SpreadsheetApp.getActiveSpreadsheet().toast('已轉換 ' + changed + ' 筆；保留「已取消」' + kept + ' 筆；無法辨識 ' + unknown + ' 筆', '狀態轉換完成', 10);
 }

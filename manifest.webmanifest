@@ -19,6 +19,7 @@
   "shortcuts": [
     { "name": "線上點餐", "url": "./#order", "icons": [{ "src": "icons/icon-v2-192.png", "sizes": "192x192" }] },
     { "name": "冷凍禮盒", "url": "./#gifts", "icons": [{ "src": "icons/icon-v2-192.png", "sizes": "192x192" }] },
+    { "name": "訂單查詢", "url": "./orders.html", "icons": [{ "src": "icons/icon-v2-192.png", "sizes": "192x192" }] },
     { "name": "門市據點", "url": "./#locations", "icons": [{ "src": "icons/icon-v2-192.png", "sizes": "192x192" }] }
   ]
 }
